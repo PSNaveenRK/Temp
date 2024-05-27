@@ -1,18 +1,18 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
 
-public class DataExtractorApp extends JFrame implements ActionListener {
+class UIComponents {
+    private JFrame frame;
     private JRadioButton amexRadioButton, ccdRadioButton;
     private JButton openButton;
 
-    public DataExtractorApp() {
-        setTitle("Unified Data Extractor");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(300, 200);
-        setLocationRelativeTo(null);
-        setLayout(new FlowLayout());
-        getContentPane().setBackground(new Color(128, 0, 128)); // Purple background
+    public UIComponents() {
+        frame = new JFrame("Unified Data Extractor");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(300, 200);
+        frame.setLocationRelativeTo(null);
+        frame.setLayout(new FlowLayout());
+        frame.getContentPane().setBackground(new Color(128, 0, 128)); // Purple background
 
         amexRadioButton = new JRadioButton("Amex");
         ccdRadioButton = new JRadioButton("CCD");
@@ -22,24 +22,40 @@ public class DataExtractorApp extends JFrame implements ActionListener {
         radioButtonGroup.add(ccdRadioButton);
 
         openButton = new JButton("Open");
-        openButton.addActionListener(this);
 
-        add(amexRadioButton);
-        add(ccdRadioButton);
-        add(openButton);
-
-        setVisible(true);
+        frame.add(amexRadioButton);
+        frame.add(ccdRadioButton);
+        frame.add(openButton);
     }
 
-    public void actionPerformed(ActionEvent e) {
-        if (amexRadioButton.isSelected()) {
-            System.out.println("Amex selected");
-        } else if (ccdRadioButton.isSelected()) {
-            System.out.println("CCD selected");
-        }
+    public void addActionListener(ActionListener listener) {
+        openButton.addActionListener(listener);
     }
 
+    public void setVisible(boolean visible) {
+        frame.setVisible(visible);
+    }
+
+    public boolean isAmexSelected() {
+        return amexRadioButton.isSelected();
+    }
+
+    public boolean isCcdSelected() {
+        return ccdRadioButton.isSelected();
+    }
+}
+
+public class Main {
     public static void main(String[] args) {
-        new DataExtractorApp();
+        UIComponents uiComponents = new UIComponents();
+        uiComponents.setVisible(true);
+
+        uiComponents.addActionListener(e -> {
+            if (uiComponents.isAmexSelected()) {
+                System.out.println("Amex selected");
+            } else if (uiComponents.isCcdSelected()) {
+                System.out.println("CCD selected");
+            }
+        });
     }
 }
