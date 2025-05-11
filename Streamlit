@@ -54,3 +54,9 @@ if all_folders:
     st.markdown(table_html, unsafe_allow_html=True)
 else:
     st.warning("No reports found.")
+
+
+
+col_headers[0].markdown("<p style='font-size:16px; font-weight:bold;'>Test Case Name</p>", unsafe_allow_html=True)
+col_headers[1].markdown("<p style='font-size:16px; font-weight:bold;'>Status</p>", unsafe_allow_html=True)
+col_headers[2].markdown("<p style='font-size:16px; font-weight:bold;'>Report</p>", unsafe_allow_html=True)
