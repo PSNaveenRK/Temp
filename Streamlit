@@ -1,22 +1,10 @@
 import os
 import streamlit as st
 import webbrowser
-from bs4 import BeautifulSoup
+import re
 
-def get_test_status_from_html(file_path):
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            soup = BeautifulSoup(f, "html.parser")
-            rows = soup.find_all("tr")
-            statuses = [td.text.strip() for row in rows for td in row.find_all("td")[1:2]]
-            if all(status.upper() == "PASS" for status in statuses if status):
-                return "PASS"
-            else:
-                return "FAIL"
-    except Exception as e:
-        return f"Error"
+st.title("Test Execution Reports")
 
-# Get the latest report folder
 results_dir = "results"
 all_folders = sorted(
     [os.path.join(results_dir, f) for f in os.listdir(results_dir) if os.path.isdir(os.path.join(results_dir, f))],
@@ -28,23 +16,41 @@ if all_folders:
     latest_folder = all_folders[0]
     report_files = [f for f in os.listdir(latest_folder) if f.endswith(".html")]
 
-    st.header("Test Execution Summary")
+    table_html = """
+    <table border="1" style="border-collapse: collapse; width: 100%;">
+        <thead>
+            <tr style="background-color: #f2f2f2;">
+                <th>Test Case Name</th>
+                <th>Status</th>
+                <th>Report</th>
+            </tr>
+        </thead>
+        <tbody>
+    """
 
     for report in report_files:
+        # Extract test case name
+        test_case_name = re.sub(r'^Test_Report_(.*)_\d{6,}\.html$', r'\1', report)
+        # Extract status from file content (looking for first status cell color)
         full_path = os.path.join(latest_folder, report)
-        test_case_name = report.replace(".html", "")
-        status = get_test_status_from_html(full_path)
-        status_color = "green" if status == "PASS" else "red"
+        status = "UNKNOWN"
+        with open(full_path, "r", encoding="utf-8") as file:
+            content = file.read()
+            if 'style="color: red"' in content:
+                status = "FAIL"
+            elif 'style="color: green"' in content:
+                status = "PASS"
 
-        cols = st.columns([4, 1, 2])
-        cols[0].markdown(f"**{test_case_name}**")
-        cols[1].markdown(f"<span style='color:{status_color}'>{status}</span>", unsafe_allow_html=True)
-        if cols[2].button(f"Open Report: {test_case_name}"):
-            webbrowser.open_new_tab("file://" + os.path.abspath(full_path))
+        # Add a row to the table
+        table_html += f"""
+            <tr>
+                <td>{test_case_name}</td>
+                <td>{status}</td>
+                <td><a href="file://{os.path.abspath(full_path)}" target="_blank">Open Report</a></td>
+            </tr>
+        """
+
+    table_html += "</tbody></table>"
+    st.markdown(table_html, unsafe_allow_html=True)
 else:
     st.warning("No reports found.")
-
-
-import re
-# Assuming `report` is the filename like 'Test_Report_Verify GPS Member Actionable Alert for Commercial_223452.html'
-test_case_name = re.sub(r'^Test_Report_(.*)_\d{6,}\.html$', r'\1', report)
