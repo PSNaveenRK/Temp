@@ -1,55 +1,39 @@
 import os
-from openpyxl import load_workbook
+from datetime import datetime
 
-def get_input_from_excel_sheet(column_name, test_case_name, sheet_name):
-    try:
-        # Build Excel path
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        parent_dir = os.path.dirname(script_dir)
-        input_file = os.path.join(parent_dir, "resources", "data_file", "data.xlsx")
+class HTMLLogger:
+    def __init__(self, test_case_name):
+        # Create results directory with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.results_folder = os.path.join("results", timestamp)
+        os.makedirs(self.results_folder, exist_ok=True)
 
-        # Load workbook and sheet
-        wb = load_workbook(input_file)
-        if sheet_name not in wb.sheetnames:
-            print(f"Sheet '{sheet_name}' not found.")
-            return None
-        ws = wb[sheet_name]
+        # Clean test case name for file name
+        safe_tc_name = test_case_name.replace(" ", "_").replace("/", "_")
+        report_name = f"{safe_tc_name}_{timestamp}.html"
+        self.log_file = os.path.join(self.results_folder, report_name)
 
-        # Find the column index for the column_name in the first row
-        col_index = None
-        for col in ws.iter_cols(min_row=1, max_row=1):
-            if col[0].value == column_name:
-                col_index = col[0].column
-                break
+        # Start HTML report
+        with open(self.log_file, "w", encoding="utf-8") as f:
+            f.write("<!DOCTYPE html>\n<html>\n<head>\n")
+            f.write("<meta charset='UTF-8'>\n")
+            f.write("<title>Test Report</title>\n</head>\n<body>\n")
+            f.write(f"<h2>Test Execution Report - {datetime.now()}</h2>\n")
+            f.write("<table border='1' cellspacing='0' cellpadding='5'>\n")
+            f.write("<tr><th>Step</th><th>Status</th><th>Message</th></tr>\n")
 
-        if not col_index:
-            print(f"Column '{column_name}' not found.")
-            return None
+    def add_section(self, title):
+        with open(self.log_file, "a", encoding="utf-8") as f:
+            f.write(f"<tr><td colspan='3' style='background-color:#fefefe; font-weight:bold;'>{title}</td></tr>\n")
 
-        # Find the row that contains the test_case_name in "Test Case Name" column
-        tc_col_index = None
-        for col in ws.iter_cols(min_row=1, max_row=1):
-            if col[0].value == "Test Case Name":
-                tc_col_index = col[0].column
-                break
+    def log(self, step, status, message):
+        color = {"PASS": "green", "FAIL": "red", "INFO": "blue"}.get(status.upper(), "black")
+        with open(self.log_file, "a", encoding="utf-8") as f:
+            f.write(f"<tr><td>{step}</td><td style='color:{color}'>{status}</td><td>{message}</td></tr>\n")
 
-        if not tc_col_index:
-            print(f"'Test Case Name' column not found.")
-            return None
+    def close(self):
+        with open(self.log_file, "a", encoding="utf-8") as f:
+            f.write("</table></body></html>\n")
 
-        target_row = None
-        for row in ws.iter_rows(min_row=2):
-            if str(row[tc_col_index - 1].value).strip() == test_case_name:
-                target_row = row
-                break
-
-        if not target_row:
-            print(f"Test Case '{test_case_name}' not found.")
-            return None
-
-        value = ws.cell(row=target_row[0].row, column=col_index).value
-        return value
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        return None
+    def get_report_path(self):
+        return self.log_file
