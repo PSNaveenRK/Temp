@@ -43,3 +43,8 @@ if all_folders:
             webbrowser.open_new_tab("file://" + os.path.abspath(full_path))
 else:
     st.warning("No reports found.")
+
+
+import re
+# Assuming `report` is the filename like 'Test_Report_Verify GPS Member Actionable Alert for Commercial_223452.html'
+test_case_name = re.sub(r'^Test_Report_(.*)_\d{6,}\.html$', r'\1', report)
