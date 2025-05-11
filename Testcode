@@ -8,6 +8,18 @@ import base64
 # Terminate Process when the UI is closed
 def handle_exit():
     print("Streamlit UI is closed. Exiting the test runner....")
+    import atexit
+import os
+import shutil
+import streamlit as st
+from glob import glob
+import base64
+import re  # Import the regular expression module
+
+
+# Terminate Process when the UI is closed
+def handle_exit():
+    print("Streamlit UI is closed. Exiting the test runner....")
     os._exit(0)
 
 
@@ -39,16 +51,32 @@ def show_latest_report(results_dir="results", static_dir="static"):
 
     latest_report = report_file
     report_filename = os.path.basename(latest_report)
-    static_report_path = os.path.join(static_dir, report_filename)
-    os.makedirs(static_dir, exist_ok=True)
-
-    if os.path.abspath(latest_report) != os.path.abspath(static_report_path):
-        shutil.copy(latest_report, static_report_path)
 
     # Read the file content
-    with open(static_report_path, "rb") as f:
-        report_bytes = f.read()
-    report_base64 = base64.b64encode(report_bytes).decode()
+    with open(latest_report, "r", encoding="utf-8") as f:  # Open as text
+        report_content = f.read()
+
+    # Embed CSS and JavaScript (simplified for demonstration)
+    # IMPORTANT:  This is a simplified example.  For a real report, you would
+    # need to:
+    # 1.  Locate the actual CSS and JS files used by your report.
+    # 2.  Read their content.
+    # 3.  Embed the content within <style> and <script> tags in the HTML.
+    # 4.  Handle any font files or other assets.  For fonts, you'd likely need to
+    #     base64-encode them and include them in the CSS.
+    #
+    #  This example assumes very basic CSS/JS within the HTML or that you can easily
+    #  extract it.  For complex reports, you'll need more robust parsing.
+
+    #  Simplified example:  Let's assume the report has inline styles and a simple script.
+    #  You'd need to adapt this to your report's structure.
+    report_content = re.sub(r'<link rel="stylesheet".*?>', '', report_content)
+    report_content = re.sub(r'<script .*?</script>', '', report_content)
+
+
+    # Encode the modified HTML
+    report_base64 = base64.b64encode(report_content.encode('utf-8')).decode()
+
     # Use st.markdown with an anchor tag and a JavaScript function
     st.markdown(
         f"""
@@ -57,7 +85,7 @@ def show_latest_report(results_dir="results", static_dir="static"):
         document.getElementById('download-link').addEventListener('click', function(event) {{
             event.preventDefault(); // Prevent the default link behavior
             var base64Data = '{report_base64}';
-            var blob = b64toBlob(base64Data, 'text/html'); // Use the b64toBlob function
+            var blob = b64toBlob(base64Data, 'text/html;charset=utf-8'); // Specify charset
             var url = URL.createObjectURL(blob);
             var a = document.createElement('a');
             a.href = url;
