@@ -1,62 +1,32 @@
-import os
 import streamlit as st
-import webbrowser
-import re
 
-st.title("Test Execution Reports")
+# HTML table header
+table_html = """
+<table style='border-collapse: collapse; width: 100%; font-family: Times New Roman;'>
+    <tr>
+        <th style='border: 1px solid black; padding: 8px; font-size: 16px; text-align: left;'>Test Case Name</th>
+        <th style='border: 1px solid black; padding: 8px; font-size: 16px; text-align: left;'>Status</th>
+        <th style='border: 1px solid black; padding: 8px; font-size: 16px; text-align: left;'>Report</th>
+    </tr>
+"""
 
-results_dir = "results"
-all_folders = sorted(
-    [os.path.join(results_dir, f) for f in os.listdir(results_dir) if os.path.isdir(os.path.join(results_dir, f))],
-    key=os.path.getmtime,
-    reverse=True
-)
+# Execute your test logic here
+test_case_name = "Verify GPS Alert"
+status = "PASS"
+status_color = "green"
+report_link = "file:///C:/path/to/report.html"
 
-if all_folders:
-    latest_folder = all_folders[0]
-    report_files = [f for f in os.listdir(latest_folder) if f.endswith(".html")]
+# Add dynamic row
+table_html += f"""
+<tr>
+    <td style='border: 1px solid black; padding: 8px;'>{test_case_name}</td>
+    <td style='border: 1px solid black; padding: 8px; color: {status_color};'>{status}</td>
+    <td style='border: 1px solid black; padding: 8px;'><a href="{report_link}" target="_blank">Open Report</a></td>
+</tr>
+"""
 
-    table_html = """
-    <table border="1" style="border-collapse: collapse; width: 100%;">
-        <thead>
-            <tr style="background-color: #f2f2f2;">
-                <th>Test Case Name</th>
-                <th>Status</th>
-                <th>Report</th>
-            </tr>
-        </thead>
-        <tbody>
-    """
+# Close the table
+table_html += "</table>"
 
-    for report in report_files:
-        # Extract test case name
-        test_case_name = re.sub(r'^Test_Report_(.*)_\d{6,}\.html$', r'\1', report)
-        # Extract status from file content (looking for first status cell color)
-        full_path = os.path.join(latest_folder, report)
-        status = "UNKNOWN"
-        with open(full_path, "r", encoding="utf-8") as file:
-            content = file.read()
-            if 'style="color: red"' in content:
-                status = "FAIL"
-            elif 'style="color: green"' in content:
-                status = "PASS"
-
-        # Add a row to the table
-        table_html += f"""
-            <tr>
-                <td>{test_case_name}</td>
-                <td>{status}</td>
-                <td><a href="file://{os.path.abspath(full_path)}" target="_blank">Open Report</a></td>
-            </tr>
-        """
-
-    table_html += "</tbody></table>"
-    st.markdown(table_html, unsafe_allow_html=True)
-else:
-    st.warning("No reports found.")
-
-
-
-col_headers[0].markdown("<p style='font-size:16px; font-weight:bold;'>Test Case Name</p>", unsafe_allow_html=True)
-col_headers[1].markdown("<p style='font-size:16px; font-weight:bold;'>Status</p>", unsafe_allow_html=True)
-col_headers[2].markdown("<p style='font-size:16px; font-weight:bold;'>Report</p>", unsafe_allow_html=True)
+# Render the table
+st.markdown(table_html, unsafe_allow_html=True)
