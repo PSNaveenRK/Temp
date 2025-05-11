@@ -4,20 +4,19 @@ import webbrowser
 from bs4 import BeautifulSoup
 
 def get_test_status_from_html(file_path):
-    """Parse HTML and return overall status (PASS if all steps passed)."""
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             soup = BeautifulSoup(f, "html.parser")
             rows = soup.find_all("tr")
-            statuses = [td.text.strip() for row in rows for td in row.find_all("td")[1:2]]  # 2nd column = status
-            if all(status.upper() == "PASS" for status in statuses if status): 
+            statuses = [td.text.strip() for row in rows for td in row.find_all("td")[1:2]]
+            if all(status.upper() == "PASS" for status in statuses if status):
                 return "PASS"
             else:
                 return "FAIL"
     except Exception as e:
-        return f"Error: {str(e)}"
+        return f"Error"
 
-# Get latest results folder
+# Get the latest report folder
 results_dir = "results"
 all_folders = sorted(
     [os.path.join(results_dir, f) for f in os.listdir(results_dir) if os.path.isdir(os.path.join(results_dir, f))],
@@ -30,39 +29,17 @@ if all_folders:
     report_files = [f for f in os.listdir(latest_folder) if f.endswith(".html")]
 
     st.header("Test Execution Summary")
-    st.markdown(f"**Reports Folder:** `{latest_folder}`")
-
-    # Display table headers
-    st.markdown(
-        """
-        <style>
-        .report-table th, .report-table td { padding: 8px 12px; border: 1px solid #ccc; }
-        .report-table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-        </style>
-        """, unsafe_allow_html=True
-    )
-
-    st.markdown("<table class='report-table'><tr><th>Test Case Name</th><th>Status</th><th>Action</th></tr>", unsafe_allow_html=True)
 
     for report in report_files:
         full_path = os.path.join(latest_folder, report)
         test_case_name = report.replace(".html", "")
         status = get_test_status_from_html(full_path)
+        status_color = "green" if status == "PASS" else "red"
 
-        # Create unique key for each button
-        btn_key = f"btn_{report}"
-
-        st.markdown(
-            f"""
-            <tr>
-                <td>{test_case_name}</td>
-                <td style="color:{'green' if status=='PASS' else 'red'}">{status}</td>
-                <td><a href="file://{os.path.abspath(full_path)}" target="_blank">Open Report</a></td>
-            </tr>
-            """, unsafe_allow_html=True
-        )
-
-    st.markdown("</table>", unsafe_allow_html=True)
-
+        cols = st.columns([4, 1, 2])
+        cols[0].markdown(f"**{test_case_name}**")
+        cols[1].markdown(f"<span style='color:{status_color}'>{status}</span>", unsafe_allow_html=True)
+        if cols[2].button(f"Open Report: {test_case_name}"):
+            webbrowser.open_new_tab("file://" + os.path.abspath(full_path))
 else:
-    st.warning("No report folders found in results/.")
+    st.warning("No reports found.")
