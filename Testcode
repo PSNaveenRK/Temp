@@ -2,38 +2,31 @@ import os
 from datetime import datetime
 
 class HTMLLogger:
+    shared_folder = os.path.join("results", datetime.now().strftime("%Y%m%d_%H%M%S"))
+    os.makedirs(shared_folder, exist_ok=True)
+
     def __init__(self, test_case_name):
-        # Create results directory with timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.results_folder = os.path.join("results", timestamp)
-        os.makedirs(self.results_folder, exist_ok=True)
+        safe_name = "".join(c if c.isalnum() or c in (' ', '_') else "_" for c in test_case_name)
+        filename = f"test_report_{safe_name}_{datetime.now().strftime('%H%M%S')}.html"
+        self.log_file = os.path.join(self.shared_folder, filename)
 
-        # Clean test case name for file name
-        safe_tc_name = test_case_name.replace(" ", "_").replace("/", "_")
-        report_name = f"{safe_tc_name}_{timestamp}.html"
-        self.log_file = os.path.join(self.results_folder, report_name)
-
-        # Start HTML report
         with open(self.log_file, "w", encoding="utf-8") as f:
             f.write("<!DOCTYPE html>\n<html>\n<head>\n")
             f.write("<meta charset='UTF-8'>\n")
             f.write("<title>Test Report</title>\n</head>\n<body>\n")
-            f.write(f"<h2>Test Execution Report - {datetime.now()}</h2>\n")
-            f.write("<table border='1' cellspacing='0' cellpadding='5'>\n")
-            f.write("<tr><th>Step</th><th>Status</th><th>Message</th></tr>\n")
+            f.write(f"<h2>Test Execution Report {datetime.now()}</h2>")
+            f.write("<table border='1' cellspacing='0' cellpadding='5'>")
+            f.write("<tr><th>Step</th><th>Status</th><th>Message</th></tr>")
 
     def add_section(self, title):
         with open(self.log_file, "a", encoding="utf-8") as f:
-            f.write(f"<tr><td colspan='3' style='background-color:#fefefe; font-weight:bold;'>{title}</td></tr>\n")
+            f.write(f"<tr><td colspan='3' style='background-color:#fefefe; font-weight:bold;'>{title}</td></tr>")
 
     def log(self, step, status, message):
         color = {"PASS": "green", "FAIL": "red", "INFO": "blue"}.get(status.upper(), "black")
         with open(self.log_file, "a", encoding="utf-8") as f:
-            f.write(f"<tr><td>{step}</td><td style='color:{color}'>{status}</td><td>{message}</td></tr>\n")
+            f.write(f"<tr><td>{step}</td><td style='color:{color}'>{status}</td><td>{message}</td></tr>")
 
     def close(self):
         with open(self.log_file, "a", encoding="utf-8") as f:
-            f.write("</table></body></html>\n")
-
-    def get_report_path(self):
-        return self.log_file
+            f.write("</table></body></html>")
