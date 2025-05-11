@@ -1,0 +1,143 @@
+import atexit
+import os
+import shutil
+import streamlit as st
+from glob import glob
+import base64
+
+# Terminate Process when the UI is closed
+def handle_exit():
+    print("Streamlit UI is closed. Exiting the test runner....")
+    os._exit(0)
+
+
+def open_excel_file(file_path):
+    try:
+        os.startfile(file_path)  # For Windows
+    except AttributeError:
+        try:
+            import subprocess
+            subprocess.run(['open', file_path])  # For macOS
+        except:
+            st.error(f"Failed to open file.  Please open manually: {file_path}")
+    except Exception as e:
+        st.error(f"Failed to open file: {e}")
+
+
+
+def get_latest_report(results_dir="results", static_dir="static"):
+    report_files = glob(os.path.join(results_dir, "test_report_*.html"))
+    return max(report_files, key=os.path.getctime) if report_files else None
+
+
+def show_latest_report(results_dir="results", static_dir="static"):
+    report_file = get_latest_report(results_dir)
+
+    if not report_file:
+        st.warning("No Report Found")
+        return
+
+    latest_report = report_file
+    report_filename = os.path.basename(latest_report)
+    static_report_path = os.path.join(static_dir, report_filename)
+    os.makedirs(static_dir, exist_ok=True)
+
+    if os.path.abspath(latest_report) != os.path.abspath(static_report_path):
+        shutil.copy(latest_report, static_report_path)
+
+    # Read the file content
+    with open(static_report_path, "rb") as f:
+        report_bytes = f.read()
+    report_base64 = base64.b64encode(report_bytes).decode()
+    # Use st.markdown with an anchor tag and a JavaScript function
+    st.markdown(
+        f"""
+        <a id="download-link" href="#" download="{report_filename}">Click Here to Download Report</a>
+        <script>
+        document.getElementById('download-link').addEventListener('click', function(event) {{
+            event.preventDefault(); // Prevent the default link behavior
+            var base64Data = '{report_base64}';
+            var blob = b64toBlob(base64Data, 'text/html'); // Use the b64toBlob function
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = '{report_filename}';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }});
+
+        // Function to convert base64 to Blob
+        function b64toBlob(b64Data, contentType='', sliceSize=512) {{
+            const byteCharacters = atob(b64Data);
+            const byteArrays = [];
+
+            for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {{
+            const slice = byteCharacters.slice(offset, offset + sliceSize);
+
+            const byteNumbers = new Array(slice.length);
+            for (let i = 0; i < slice.length; i++) {{
+                byteNumbers[i] = slice.charCodeAt(i);
+            }}
+
+            const byteArray = new Uint8Array(byteNumbers);
+            byteArrays.push(byteArray);
+            }}
+
+            const blob = new Blob(byteArrays, {{type: contentType}});
+            return blob;
+        }}
+        </script>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+
+def streamlit_runner():
+    st.set_page_config(page_title="GPS Test Automation", layout="centered")
+    st.title("Bulk Alerts Test Automation")
+    st.write("")
+    atexit.register(handle_exit)
+
+    coll, col_gap, col2 = st.columns([1, 8.1, 1])
+
+    with coll:
+        # Run Test when button is clicked
+        if st.button("Run Test"):
+            # st.empty()
+            with st.spinner("Test Execution is In Progress...."):
+                from UI.test_runner import run_tests # Import run_tests
+                status, results = run_tests()
+                st.session_state["test_status"] = status
+                st.session_state["report_path"] = get_latest_report()
+
+            if "test_status" in st.session_state:
+                status = st.session_state["test_status"]
+                report = st.session_state.get("report_path")
+                if status == "PASSED":
+                    st.success("Test Execution Completed and Test 'PASSED'!!!")
+                else:
+                    st.error("Test Execution Completed and Some Test 'FAILED'")
+
+                st.markdown("---")
+                if report and os.path.exists(report):
+                    # Use the show_latest_report function
+                    show_latest_report()
+                else:
+                    st.warning("No report found. Run the test to generate it.")
+
+    with col2:
+        excel_path = os.path.join("resources", "data file", "data.xlsx")
+        if os.path.exists(excel_path):
+            st.empty()
+            if st.button("Update Data Sheet"):
+                open_excel_file(excel_path)
+        else:
+            st.error("File not found: resources/data_file/data.xlsx")
+
+
+
+if __name__ == "__main__":
+    streamlit_runner()
