@@ -1,32 +1,27 @@
 import os
-from datetime import datetime
+import streamlit as st
+import webbrowser
 
-class HTMLLogger:
-    shared_folder = os.path.join("results", datetime.now().strftime("%Y%m%d_%H%M%S"))
-    os.makedirs(shared_folder, exist_ok=True)
+# Get the latest report folder
+results_dir = "results"
+all_folders = sorted(
+    [os.path.join(results_dir, f) for f in os.listdir(results_dir) if os.path.isdir(os.path.join(results_dir, f))],
+    key=os.path.getmtime,
+    reverse=True
+)
 
-    def __init__(self, test_case_name):
-        safe_name = "".join(c if c.isalnum() or c in (' ', '_') else "_" for c in test_case_name)
-        filename = f"test_report_{safe_name}_{datetime.now().strftime('%H%M%S')}.html"
-        self.log_file = os.path.join(self.shared_folder, filename)
+if all_folders:
+    latest_folder = all_folders[0]
+    report_files = [f for f in os.listdir(latest_folder) if f.endswith(".html")]
 
-        with open(self.log_file, "w", encoding="utf-8") as f:
-            f.write("<!DOCTYPE html>\n<html>\n<head>\n")
-            f.write("<meta charset='UTF-8'>\n")
-            f.write("<title>Test Report</title>\n</head>\n<body>\n")
-            f.write(f"<h2>Test Execution Report {datetime.now()}</h2>")
-            f.write("<table border='1' cellspacing='0' cellpadding='5'>")
-            f.write("<tr><th>Step</th><th>Status</th><th>Message</th></tr>")
+    st.header("Test Execution Reports")
 
-    def add_section(self, title):
-        with open(self.log_file, "a", encoding="utf-8") as f:
-            f.write(f"<tr><td colspan='3' style='background-color:#fefefe; font-weight:bold;'>{title}</td></tr>")
+    for report in report_files:
+        full_path = os.path.join(latest_folder, report)
 
-    def log(self, step, status, message):
-        color = {"PASS": "green", "FAIL": "red", "INFO": "blue"}.get(status.upper(), "black")
-        with open(self.log_file, "a", encoding="utf-8") as f:
-            f.write(f"<tr><td>{step}</td><td style='color:{color}'>{status}</td><td>{message}</td></tr>")
-
-    def close(self):
-        with open(self.log_file, "a", encoding="utf-8") as f:
-            f.write("</table></body></html>")
+        with open(full_path, "r", encoding="utf-8") as file:
+            btn_label = f"Open {report}"
+            if st.button(btn_label):
+                webbrowser.open_new_tab("file://" + os.path.abspath(full_path))
+else:
+    st.warning("No reports found.")
